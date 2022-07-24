@@ -2,15 +2,19 @@ package com.daikaz.ff.sample
 
 import com.daikaz.ff.configs.SectionConfiguration
 import com.daikaz.ff.section.SectionViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-class SampleVerticalSectionViewModel(override val sectionID: String, override val config: SectionConfiguration = SectionConfiguration()) :
-    SectionViewModel<Int>(sectionID, config) {
+class SampleVerticalSectionViewModel(
+    override val sectionID: String,
+    override val scope: CoroutineScope,
+    override val config: SectionConfiguration = SectionConfiguration()
+) : SectionViewModel<Int>(sectionID, scope, config) {
 
     var i: Int = 0
-    override fun loadBlockViewState(): Flow<Result<Int>> {
+    override fun loadBlockViewState(): Flow<Int> {
         return flow {
             when (sectionID) {
                 "A"  -> delay(1000)
@@ -22,10 +26,14 @@ class SampleVerticalSectionViewModel(override val sectionID: String, override va
             }
             if ("C" == sectionID && i < 2) {
                 i++
-                emit(Result.failure(Exception("somehow error")))
+                throw Exception("somehow error")
             } else {
-                emit(Result.success(6))
+                emit(6)
             }
         }
+    }
+
+    override fun initBusinessViewState(): Int {
+        return 1
     }
 }

@@ -176,6 +176,9 @@ abstract class FlexibleListFragment<BD, VM : FlexibleListViewModel> : Fragment()
                     emit(result)
                 }
             }.onEach {
+                it.forEach { view ->
+                    view.viewModel.trigger()
+                }
                 sectionViews.clear()
                 sectionViews.addAll(it)
             }.flatMapLatest {
@@ -194,36 +197,30 @@ abstract class FlexibleListFragment<BD, VM : FlexibleListViewModel> : Fragment()
     }
 
     private fun <D> SectionView<D>.loadDataThenConvertToEpoxyModels(): Flow<Present<D>> {
-        return viewModel.reloadFlow.flatMapLatest {
-            flow {
-                emit(DataHasStatus.loading())
-                emitAll(viewModel.loadViewState().mapLatest { result ->
-                    if (result.isFailure) {
-                        return@mapLatest DataHasStatus.error(result)
-                    }
-                    return@mapLatest DataHasStatus.success(result)
-                })
-            }
-        }.onEach updateSpanCount@{
+        return viewModel.viewState.
+            //flatMapLatest {
+            //    viewModel.loadBusinessViewState()
+            //}
+        onEach updateSpanCount@{
             totalSpanCount = layoutConfiguration.totalSpanCount
             containerSize = with(recyclerView()) {
                 Size(width - paddingStart - paddingEnd, height - paddingTop - paddingBottom)
             }
         }.mapLatest { dataHasStatus ->
-            val result = dataHasStatus.data
+            val result = dataHasStatus.businessViewState
 
             if (dataHasStatus.isLoading) {
-                return@mapLatest Present(this, dataHasStatus.status, buildEpoxyModels(dataHasStatus.status))
+                return@mapLatest Present(this, LoadStatus.LOADING, buildEpoxyModels(LoadStatus.LOADING))
             }
 
-            if (dataHasStatus.isSuccess && result?.isSuccess == true) {
-                return@mapLatest Present(this, dataHasStatus.status, buildEpoxyModels(dataHasStatus.status, result.getOrNull()))
+            if (dataHasStatus.isSuccess) {
+                return@mapLatest Present(this, LoadStatus.SUCCESS, buildEpoxyModels(LoadStatus.SUCCESS, result))
             }
 
             return@mapLatest when {
                 viewModel.config.errorHandleType.isCorrupt -> throw CorruptException(viewModel.sectionID)
-                viewModel.config.errorHandleType.isShow    -> Present(this, dataHasStatus.status, buildEpoxyModels(dataHasStatus.status))
-                else                                       -> Present(this, dataHasStatus.status, emptyList())
+                viewModel.config.errorHandleType.isShow    -> Present(this, LoadStatus.ERROR, buildEpoxyModels(LoadStatus.ERROR))
+                else                                       -> Present(this, LoadStatus.ERROR, emptyList())
             }
         }
     }
@@ -320,19 +317,6 @@ abstract class FlexibleListFragment<BD, VM : FlexibleListViewModel> : Fragment()
         val status: LoadStatus,
         val models: List<EpoxyModel<*>>,
     )
-
-    private data class DataHasStatus<D>(val status: LoadStatus, val data: D?) {
-
-        companion object {
-
-            fun <T> success(data: T) = DataHasStatus(LoadStatus.SUCCESS, data)
-            fun <T> error(data: T) = DataHasStatus(LoadStatus.ERROR, data)
-            fun <T> loading(data: T? = null) = DataHasStatus(LoadStatus.LOADING, data)
-        }
-
-        val isSuccess: Boolean get() = status == LoadStatus.SUCCESS
-        val isLoading: Boolean get() = status == LoadStatus.LOADING
-    }
 
     private class CorruptException(sectionID: String) : Exception("Section $sectionID is required")
 
