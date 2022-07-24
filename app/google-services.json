@@ -1,0 +1,91 @@
+{
+  "project_info": {
+    "project_number": "502712056240",
+    "firebase_url": "https://drapp-centralize.firebaseio.com",
+    "project_id": "drapp-centralize",
+    "storage_bucket": "drapp-centralize.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:502712056240:android:12fc002cbfb236e94e3e75",
+        "android_client_info": {
+          "package_name": "com.daikaz.ff"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "502712056240-54epfnnhbk556kafcnes21qfpt542sfo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcOXATLvY8zOnozcVGB3syzHH-UMy-N4c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "502712056240-54epfnnhbk556kafcnes21qfpt542sfo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "502712056240-3fe03qs7h35f4ivimbmcco4bh0haqq33.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.drapp.drappios"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:502712056240:android:bb616f079156a4ab",
+        "android_client_info": {
+          "package_name": "com.drapp.drappandroid"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "502712056240-1ij9419het35bpfrj916e352iefe6j25.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.drapp.drappandroid",
+            "certificate_hash": "f230d0e220b1321a2ada4f321d5bf8576bc6a3d8"
+          }
+        },
+        {
+          "client_id": "502712056240-54epfnnhbk556kafcnes21qfpt542sfo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcOXATLvY8zOnozcVGB3syzHH-UMy-N4c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "502712056240-54epfnnhbk556kafcnes21qfpt542sfo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "502712056240-3fe03qs7h35f4ivimbmcco4bh0haqq33.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.drapp.drappios"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
