@@ -13,7 +13,7 @@ import com.daikaz.ff.utils.maxSpanCount
 import com.daikaz.ff.utils.toPx
 
 class SampleSameSizeGridSectionView(
-    override val viewModel: SectionViewModel<Int>,
+    override val viewModel: SampleSameSizeGridSectionViewModel,
     override val fragment: FlexibleListFragment<*, *>
 ) : SameSizeGridSectionView<Int>() {
 

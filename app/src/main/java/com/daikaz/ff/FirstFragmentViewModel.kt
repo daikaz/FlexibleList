@@ -12,11 +12,11 @@ import kotlinx.coroutines.flow.flow
 
 class FirstFragmentViewModel : FlexibleListViewModel() {
 
-    override fun provideSectionViewModels(): Flow<List<SectionViewModel<*>>> {
+    override fun provideSectionViewModels(): Flow<List<SectionViewModel<*, *, Int>>> {
         return flow {
             Log.w("FirstFragmentViewModel", "addd+1")
             emit(
-                listOf<SectionViewModel<Int>>(
+                listOf<SectionViewModel<*, *, Int>>(
                     SampleVerticalSectionViewModel("A", scope = viewModelScope),
                     SampleSameSizeGridSectionViewModel("B", scope = viewModelScope),
                     SampleVerticalSectionViewModel("C", viewModelScope, SectionConfiguration(SectionConfiguration.ErrorHandleType.SHOW)),

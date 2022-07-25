@@ -176,9 +176,9 @@ abstract class FlexibleListFragment<BD, VM : FlexibleListViewModel> : Fragment()
                     emit(result)
                 }
             }.onEach {
-                it.forEach { view ->
-                    view.viewModel.trigger()
-                }
+                //it.forEach { view ->
+                //    view.viewModel.trigger().flowOn(flowOnContext).launchIn(lifecycleScope)
+                //}
                 sectionViews.clear()
                 sectionViews.addAll(it)
             }.flatMapLatest {
@@ -258,17 +258,18 @@ abstract class FlexibleListFragment<BD, VM : FlexibleListViewModel> : Fragment()
 
                 }
                 status.isLoading -> {
-                    val mode = config.loadingMode
-                    if (mode.isNone) return@dispatchChanged
-                    val hasAlreadySucceeded = viewModel.sectionWithLoadStatus.firstOrNull { it.sectionID == sectionID }?.loadStatus
-                    if (
-                        mode.isAlways
-                        or (mode.isFirstTimeOnly && hasAlreadySucceeded?.isLoading == true)
-                        or (mode.isUntilSuccess && hasAlreadySucceeded?.isSuccess != true)
-                        or (viewModel.hasSuccessfullyLoadAllCorruptSections()).not()
-                    ) {
-                        controller.submitModels(status, sectionID, models)
-                    }
+                    //val mode = config.loadingMode
+                    //if (mode.isNone) return@dispatchChanged
+                    //val hasAlreadySucceeded = viewModel.sectionWithLoadStatus.firstOrNull { it.sectionID == sectionID }?.loadStatus
+                    //if (
+                    //    mode.isAlways
+                    //    or (mode.isFirstTimeOnly && hasAlreadySucceeded?.isLoading == true)
+                    //    or (mode.isUntilSuccess && hasAlreadySucceeded?.isSuccess != true)
+                    //    or (viewModel.hasSuccessfullyLoadAllCorruptSections()).not()
+                    //) {
+                    //    controller.submitModels(status, sectionID, models)
+                    //}
+                    controller.submitModels(status, sectionID, models)
                 }
                 status.isFailure -> {
                     viewModel.updateSuccess(sectionID, status = LoadStatus.ERROR)
@@ -293,7 +294,7 @@ abstract class FlexibleListFragment<BD, VM : FlexibleListViewModel> : Fragment()
         }
     }
 
-    abstract fun getSectionViewFrom(viewModel: SectionViewModel<*>): SectionView<*>?
+    abstract fun getSectionViewFrom(viewModel: SectionViewModel<*, *, *>): SectionView<*>?
 
     private fun reload() {
         with(sectionViewWithDecors) {

@@ -1,5 +1,7 @@
 package com.daikaz.ff.sample
 
+import com.daikaz.ff.LoadViewState
+import com.daikaz.ff.action.ReloadAction
 import com.daikaz.ff.configs.SectionConfiguration
 import com.daikaz.ff.section.SectionViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -8,10 +10,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class SampleVerticalSectionViewModel(
-    override val sectionID: String,
-    override val scope: CoroutineScope,
-    override val config: SectionConfiguration = SectionConfiguration()
-) : SectionViewModel<Int>(sectionID, scope, config) {
+    sectionID: String,
+    scope: CoroutineScope,
+    config: SectionConfiguration = SectionConfiguration()
+) : SectionViewModel<Any, Any, Int>(sectionID, scope, config = config) {
 
     var i: Int = 0
     override fun loadBlockViewState(): Flow<Int> {
@@ -34,6 +36,23 @@ class SampleVerticalSectionViewModel(
     }
 
     override fun initBusinessViewState(): Int {
-        return 1
+        return 0
+    }
+
+    override fun correctLoadViewState(loadViewState: LoadViewState, businessViewState: Int): LoadViewState {
+        if (businessViewState != 0) {
+            return loadViewState
+        }
+        return super.correctLoadViewState(loadViewState, businessViewState)
+    }
+
+    override suspend fun intentToAction(intent: Any, loadViewState: LoadViewState, businessViewState: Int): Any {
+        if (intent == 1) return object : ReloadAction {
+        }
+        return Unit
+    }
+
+    override suspend fun handleAction(action: Any, loadViewState: LoadViewState, businessViewState: Int): Pair<LoadViewState, Int> {
+        return Pair(loadViewState, businessViewState)
     }
 }

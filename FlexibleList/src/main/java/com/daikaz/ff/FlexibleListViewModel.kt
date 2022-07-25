@@ -36,7 +36,7 @@ abstract class FlexibleListViewModel : ViewModel() {
         }
     }
 
-    abstract fun provideSectionViewModels(): Flow<List<SectionViewModel<*>>>
+    abstract fun provideSectionViewModels(): Flow<List<SectionViewModel<*, * , *>>>
 
     internal fun updateSuccess(sectionID: String, status: LoadStatus) {
         sectionWithLoadStatus.firstOrNull { sectionID == it.sectionID }?.run {

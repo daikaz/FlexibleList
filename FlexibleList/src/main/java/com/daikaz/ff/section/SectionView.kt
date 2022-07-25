@@ -5,6 +5,7 @@ import android.graphics.Rect
 import android.util.Size
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
+import com.airbnb.epoxy.CarouselModel_
 import com.airbnb.epoxy.EpoxyControllerAdapter
 import com.airbnb.epoxy.EpoxyModel
 import com.daikaz.ff.FlexibleListFragment
@@ -32,8 +33,10 @@ abstract class SectionView<D> {
                 val adapter = parent.adapter
                 if (adapter is EpoxyControllerAdapter) {
                     val model = adapter.getModelAtPosition(position)
+                    if (model is CarouselModel_) {
+                        return
+                    }
                     if (model !is FlexibleListEpoxyModel<*>) {
-                        return // TODO: Handle for carousel
                         throw Exception("FlexibleList only works with FlexibleListEpoxyModel<*>. Currently, it was $model")
                     }
                     if (model.sectionID != viewModel.sectionID) {
@@ -61,7 +64,7 @@ abstract class SectionView<D> {
     fun containerWidth() = containerSize.width
     fun containerHeight() = containerSize.height
 
-    abstract val viewModel: SectionViewModel<D>
+    abstract val viewModel: SectionViewModel<*, *, D>
     abstract val fragment: FlexibleListFragment<*, *>
 
     internal open fun buildEpoxyModels(status: LoadStatus, data: D? = null): List<EpoxyModel<*>> = with(status) {

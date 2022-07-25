@@ -23,9 +23,9 @@ class FirstFragment : FlexibleListFragment<FragmentFirstBinding, FirstFragmentVi
         //metadataRetriever.setDataSource()
     }
 
-    override fun getSectionViewFrom(viewModel: SectionViewModel<*>): SectionView<*>? {
+    override fun getSectionViewFrom(viewModel: SectionViewModel<*, *, *>): SectionView<*>? {
         return when (viewModel) {
-            is SampleVerticalSectionViewModel         -> SampleVeritcalSectionView(viewModel, this)
+            is SampleVerticalSectionViewModel         -> SampleVerticalSectionView(viewModel, this)
             is SampleSameSizeGridSectionViewModel     -> SampleSameSizeGridSectionView(viewModel, this)
             is SampleSameSizeCarouselSectionViewModel -> SampleSameSizeCarouselSectionView(viewModel, this)
             else                                      -> null

@@ -1,5 +1,6 @@
 package com.daikaz.ff.sample
 
+import com.daikaz.ff.LoadViewState
 import com.daikaz.ff.section.SectionViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -7,9 +8,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class SampleSameSizeCarouselSectionViewModel(
-    override val sectionID: String,
-    override val scope: CoroutineScope,
-) : SectionViewModel<Int>(sectionID, scope) {
+    sectionID: String,
+    scope: CoroutineScope,
+) : SectionViewModel<Any, Any, Int>(sectionID, scope) {
 
     override fun loadBlockViewState(): Flow<Int> {
         return flow {
@@ -19,4 +20,17 @@ class SampleSameSizeCarouselSectionViewModel(
     }
 
     override fun initBusinessViewState(): Int = 0
+
+    override fun correctLoadViewState(loadViewState: LoadViewState, businessViewState: Int): LoadViewState {
+        if (businessViewState != 0) {
+            return loadViewState
+        }
+        return super.correctLoadViewState(loadViewState, businessViewState)
+    }
+
+    override suspend fun intentToAction(intent: Any, loadViewState: LoadViewState, businessViewState: Int) = Unit
+
+    override suspend fun handleAction(action: Any, loadViewState: LoadViewState, businessViewState: Int): Pair<LoadViewState, Int> {
+        return Pair(loadViewState, businessViewState)
+    }
 }

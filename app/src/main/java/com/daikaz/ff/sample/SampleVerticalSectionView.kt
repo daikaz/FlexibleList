@@ -7,8 +7,8 @@ import com.daikaz.ff.epoxy.*
 import com.daikaz.ff.section.SectionViewModel
 import com.daikaz.ff.section.SimpleVerticalSectionView
 
-class SampleVeritcalSectionView(
-    override val viewModel: SectionViewModel<Int>,
+class SampleVerticalSectionView(
+    override val viewModel: SampleVerticalSectionViewModel,
     override val fragment: FlexibleListFragment<*, *>
 ) : SimpleVerticalSectionView<Int>() {
 
@@ -70,7 +70,9 @@ class SampleVeritcalSectionView(
         models.add(
             SampleErrorEpoxyModel_()
                 .itemWidthPixels(containerWidth())
-                .onReloadClick(View.OnClickListener { viewModel.reload() })
+                .onReloadClick(View.OnClickListener {
+                    viewModel.dispatchIntent(1)
+                })
                 .id(idPrefix)
                 .sectionID(viewModel.sectionID)
         )

@@ -1,26 +1,33 @@
 package com.daikaz.ff.section
 
+import androidx.annotation.WorkerThread
 import com.daikaz.ff.FlexibleListViewState
-import com.daikaz.ff.LoadingViewState
+import com.daikaz.ff.LoadViewState
+import com.daikaz.ff.action.ReloadAction
 import com.daikaz.ff.configs.SectionConfiguration
 import com.daikaz.ff.utils.Event
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
+import java.util.concurrent.locks.Lock
+import kotlin.coroutines.CoroutineContext
 
-abstract class SectionViewModel<BusinessViewState>(
-    open val sectionID: String,
-    protected open val scope: CoroutineScope,
-    open val config: SectionConfiguration = SectionConfiguration()
+abstract class SectionViewModel<INTENT, ACTION, BusinessViewState> constructor(
+    val sectionID: String,
+    protected val defaultCoroutineScope: CoroutineScope,
+    protected val defaultCoroutineContext: CoroutineContext = newSingleThreadContext(sectionID),
+    val config: SectionConfiguration = SectionConfiguration(),
+    protected val lock: Lock? = null
 ) {
 
     private val _reloadFlow: MutableStateFlow<Event<Unit>> = MutableStateFlow(Event(Unit))
-    val reloadFlow: StateFlow<Event<Unit>> = _reloadFlow
+    private val reloadFlow: StateFlow<Event<Unit>> = _reloadFlow
 
     private val _viewState: MutableStateFlow<FlexibleListViewState<BusinessViewState>> by lazy {
         MutableStateFlow(
             FlexibleListViewState(
-                loadingViewState = initLoadViewState(),
+                loadViewState = initLoadViewState(),
                 businessViewState = initBusinessViewState()
             )
         )
@@ -28,59 +35,141 @@ abstract class SectionViewModel<BusinessViewState>(
 
     internal val viewState: StateFlow<FlexibleListViewState<BusinessViewState>> = _viewState
 
-    internal fun trigger() {
+    init {
         reloadFlow.flatMapLatest {
+
             flow {
-                val currentViewState = viewState.value
-                val newLoadingViewState = correctLoadViewState(currentViewState.loadingViewState, currentViewState.businessViewState)
-                emit(currentViewState.copy(loadingViewState = newLoadingViewState))
+
+                with(viewState.value.copy()) {
+                    val newLoadingViewState = correctLoadViewState(loadViewState, businessViewState)
+                    if (newLoadingViewState != loadViewState) {
+                        emit(copy(loadViewState = newLoadingViewState))
+                    }
+                }
+
                 emitAll(loadBusinessViewState().mapLatest {
                     viewState.value.update(
-                        viewState = { it },
-                        loadingViewState = { viewState.value.loadingViewState.toSuccess() },
+                        businessViewState = { it },
+                        loadViewState = { viewState.value.loadViewState.toSuccess() },
                     )
                 })
-            }.catch { e ->
-                handlerError(viewState.value.businessViewState, viewState.value.loadingViewState, e).let { (loadViewState, newViewState) ->
-                    _viewState.value = viewState.value.update(viewState = { newViewState }, loadingViewState = { loadViewState })
-                }
-            }
+
+            }.catchErrors()
+
         }.onEach {
             _viewState.value = it
-        }.flowOn(Dispatchers.IO).launchIn(scope)
+        }.flowOn(defaultCoroutineContext).launchIn(defaultCoroutineScope)
     }
+
+    private fun <T> Flow<T>.catchErrors(): Flow<T> = catch { throwable ->
+        with(viewState.value.copy()) {
+            handleErrors(loadViewState, businessViewState, throwable)
+        }.run {
+            val (loadViewState, newViewState) = this
+            _viewState.value = viewState.value.update(businessViewState = { newViewState }, loadViewState = { loadViewState })
+        }
+    }
+
+    /**
+     * The only one way to update view state is dispatch new intent.
+     * This is a close method.
+     */
+    fun dispatchIntent(intent: INTENT) = coroutineScopeOf(intent).launch(coroutineDispatcherOf(intent)) {
+        val intentHandler: suspend (intent: INTENT) -> Unit = intentHandler@{ intent ->
+            // copy to prevent modifications
+            with(viewState.value.copy()) {
+                val action = intentToAction(intent, loadViewState, businessViewState)
+                if (action is ReloadAction) {
+                    reload()
+                    return@intentHandler
+                }
+
+                val (newLoadingViewState, newBusinessViewState) = handleAction(action, loadViewState, businessViewState)
+
+                if (loadViewState != newLoadingViewState) {
+                    Pair(true, update(loadViewState = { newLoadingViewState }))
+                } else {
+                    Pair(false, this)
+                }.run {
+                    val (_, newViewState) = this
+                    if (newViewState.businessViewState != newBusinessViewState) {
+                        Pair(true, second.update(businessViewState = { newBusinessViewState }))
+                    } else {
+                        this
+                    }
+                }
+            }.run {
+                val (hasChanged, newViewState) = this
+                if (!hasChanged) {
+                    return@run
+                }
+                _viewState.value = newViewState
+            }
+        }
+
+        if (lock == null) {
+            intentHandler.invoke(intent)
+            return@launch
+        }
+
+        if (lock.tryLock()) {
+            try {
+                intentHandler.invoke(intent)
+            } finally {
+                lock.unlock()
+            }
+        } else {
+            intentHandler.invoke(intent)
+        }
+    }
+
+    open fun coroutineDispatcherOf(intent: INTENT) = defaultCoroutineContext
+
+    open fun coroutineScopeOf(intent: INTENT) = defaultCoroutineScope
+
+    @WorkerThread
+    abstract suspend fun intentToAction(intent: INTENT, loadViewState: LoadViewState, businessViewState: BusinessViewState): ACTION
+
+    @WorkerThread
+    abstract suspend fun handleAction(
+        action: ACTION,
+        loadViewState: LoadViewState,
+        businessViewState: BusinessViewState
+    ): Pair<LoadViewState, BusinessViewState>
 
     private fun loadBusinessViewState(): Flow<BusinessViewState> {
         return loadBlockViewState()
     }
 
+    abstract fun loadBlockViewState(): Flow<BusinessViewState>
+
+    /**
+     * should not run on worker thread.
+     */
     abstract fun initBusinessViewState(): BusinessViewState
 
-    open fun initLoadViewState(): LoadingViewState = LoadingViewState().toInitial()
+    /**
+     * should not run on worker thread.
+     */
+    open fun initLoadViewState(): LoadViewState = LoadViewState().toInitial()
 
     /**
      * Override it if you don't want to show loading state in a certain situation
      */
-    open fun correctLoadViewState(loadingViewState: LoadingViewState, businessViewState: BusinessViewState) = loadingViewState.toLoading()
+    open fun correctLoadViewState(loadViewState: LoadViewState, businessViewState: BusinessViewState) = loadViewState.toLoading()
 
-    open fun handlerError(
+    open fun handleErrors(
+        loadViewState: LoadViewState,
         businessViewState: BusinessViewState,
-        loadingViewState: LoadingViewState,
         throwable: Throwable
-    ): Pair<LoadingViewState, BusinessViewState> {
-        return Pair(loadingViewState.toFailure(throwable = throwable), businessViewState)
+    ): Pair<LoadViewState, BusinessViewState> {
+        return Pair(loadViewState.toFailure(throwable = throwable), businessViewState)
     }
 
-    abstract fun loadBlockViewState(): Flow<BusinessViewState>
+    fun currentBusinessViewState() = viewState.value.copy().businessViewState
+    fun currentLoadViewState() = viewState.value.copy().loadViewState
 
-    fun reload() {
+    private fun reload() {
         _reloadFlow.value = Event(Unit)
-    }
-
-    fun currentBusinessViewState() = viewState.value.businessViewState
-    fun currentLoadViewState() = viewState.value.loadingViewState
-
-    fun updateViewState(loadingViewState: LoadingViewState, businessViewState: BusinessViewState) {
-        _viewState.value = viewState.value.copy(loadingViewState, businessViewState)
     }
 }
