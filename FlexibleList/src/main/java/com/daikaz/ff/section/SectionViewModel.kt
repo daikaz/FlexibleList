@@ -7,6 +7,7 @@ import com.daikaz.ff.action.ReloadAction
 import com.daikaz.ff.configs.SectionConfiguration
 import com.daikaz.ff.utils.Event
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
@@ -74,7 +75,7 @@ abstract class SectionViewModel<INTENT, ACTION, BusinessViewState> constructor(
      * The only one way to update view state is dispatch new intent.
      * This is a close method.
      */
-    fun dispatchIntent(intent: INTENT) = coroutineScopeOf(intent).launch(coroutineDispatcherOf(intent)) {
+    fun dispatchIntent(intent: INTENT) = coroutineScopeOf(intent).launch(coroutineContextOf(intent), coroutineStartOf(intent)) {
         val intentHandler: suspend (intent: INTENT) -> Unit = intentHandler@{ intent ->
             // copy to prevent modifications
             with(viewState.value.copy()) {
@@ -108,23 +109,23 @@ abstract class SectionViewModel<INTENT, ACTION, BusinessViewState> constructor(
         }
 
         if (lock == null) {
-            intentHandler.invoke(intent)
+            intentHandler(intent)
             return@launch
         }
 
         if (lock.tryLock()) {
             try {
-                intentHandler.invoke(intent)
+                intentHandler(intent)
             } finally {
                 lock.unlock()
             }
         } else {
-            intentHandler.invoke(intent)
+            intentHandler(intent)
         }
     }
 
-    open fun coroutineDispatcherOf(intent: INTENT) = defaultCoroutineContext
-
+    open fun coroutineContextOf(intent: INTENT) = defaultCoroutineContext
+    open fun coroutineStartOf(intent: INTENT) = CoroutineStart.DEFAULT
     open fun coroutineScopeOf(intent: INTENT) = defaultCoroutineScope
 
     @WorkerThread
